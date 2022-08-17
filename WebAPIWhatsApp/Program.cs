@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
 using PhoneNumbers;
 using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using System.Text;
 using WebAPIWhatsApp;
 
@@ -20,7 +21,7 @@ builder.Services.AddAuthentication(o =>
     {
         ValidateIssuer = true,
         ValidateAudience = true,
-        ValidateLifetime = false,
+        ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
         ValidIssuer = builder.Configuration["Jwt:Issuer"],
         ValidAudience = builder.Configuration["Jwt:Audience"],
@@ -46,7 +47,7 @@ var summaries = new[]
 };
 
 app.MapGet("/weatherforecast",
-    [Authorize]() =>
+    [Authorize(Roles ="Admin")]() =>
 {
     var forecast = Enumerable.Range(1, 5).Select(index =>
         new WeatherForecast
@@ -88,11 +89,17 @@ app.MapPost("/minimalapi/security/getToken",
         var audience = builder.Configuration["Jwt:Audience"];
         var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]));
         var credentials = new SigningCredentials(securityKey,SecurityAlgorithms.HmacSha256);
+        DateTime expires = DateTime.UtcNow.AddHours(1);
+        List<Claim> claims = new List<Claim>() {
+            new Claim (ClaimTypes.Role,"Admin")
+        };
 
         var token = new JwtSecurityToken(
             issuer: issuer,
             audience: audience,
-            signingCredentials: credentials
+            signingCredentials: credentials,
+            expires: expires,
+            claims: claims
             );
 
         var tokenHandler = new JwtSecurityTokenHandler();
